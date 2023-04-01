@@ -1,0 +1,31 @@
+version: "3"
+services:
+  client:
+    image: "01919965532/multicontainer-client"
+    mem_limit: 128m
+    hostname: client
+  server:
+    image: "01919965532/multicontainer-server"
+    mem_limit: 128m
+    hostname: api
+    environment:
+      - REDIS_HOST=$REDIS_HOST
+      - REDIS_PORT=$REDIS_PORT
+      - PGUSER=$PGUSER
+      - PGHOST=$PGHOST
+      - PGDATABASE=$PGDATABASE
+      - PGPASSWORD=$PGPASSWORD
+      - PGPORT=$PGPORT
+  worker:
+    image: "01919965532/multicontainer-worker"
+    mem_limit: 128m
+    hostname: worker
+    environment:
+      - REDIS_HOST=$REDIS_HOST
+      - REDIS_PORT=$REDIS_PORT
+  nginx:
+    image: "01919965532/multicontainer-nginx"
+    mem_limit: 128m
+    hostname: nginx
+    ports:
+      - "80:80"

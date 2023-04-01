@@ -1,0 +1,46 @@
+name: Deploy Multicontainer App
+# on:
+#   push:
+#     branches:
+#       - master
+
+on: [push]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+        if: ${{ success() }}
+      - uses: actions/checkout@v3
+      # - run: docker login --username ${{ secrets.DOCKER_USERNAME }} --password ${{ secrets.DOCKER_PASSWORD }}
+      - run: docker build -t 01919965532/client-test -f ./client/Dockerfile.dev ./client
+      - run: docker run -e CI=true 01919965532/client-test npm run test
+        if: ${{ success() }}
+      - run: docker build -t 01919965532/multicontainer-client ./client
+      - run: docker build -t 01919965532/multicontainer-nginx ./nginx
+      - run: docker build -t 01919965532/multicontainer-server ./server
+      - run: docker build -t 01919965532/multicontainer-worker ./worker
+      - run: docker push 01919965532/multicontainer-client
+      - run: docker push 01919965532/multicontainer-nginx
+      - run: docker push 01919965532/multicontainer-server
+      - run: docker push 01919965532/multicontainer-worker
+
+      - name: Generate deployment package
+        run: zip -r deploy.zip . -x '*.git*'
+
+      - name: Deploy to EBB
+        uses: einaregilsson/beanstalk-deploy@v18
+        with:
+          aws_access_key: ${{ secrets.AWS_ACCESS_KEY }}
+          aws_secret_key: ${{ secrets.AWS_SECRET_KEY }}
+          application_name: multicontainer-docke
+          environment_name: Multicontainerdocke-env
+          existing_bucket_name: elasticbeanstalk-us-east-1-863452371063
+          region: us-east-1
+          version_label: ${{ github.sha }}
+          deployment_package: deploy.zip
